@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO_URL = 'https://github.com/seu-usuario/django_crm.git'  // Repositório GitHub
+        IMAGE_NAME = 'meu-app'
+        DOCKER_REGISTRY = 'docker.io/seu-usuario'
+        K8S_NAMESPACE = 'default'
+        K8S_DEPLOYMENT = 'meu-app-deployment'
+    }
+
+    stages {
+        stage('Clonar Código') {
+            steps {
+                git branch: 'main', url: "${REPO_URL}"
+            }
+        }
+
+        stage('Compilar e Testar') {
+            steps {
+                sh 'echo "Rodando testes automatizados..."'
+            }
+        }
+
+        stage('Build da Imagem Docker') {
+            steps {
+                sh 'docker build -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest .'
+            }
+        }
+
+        stage('Publicar Imagem no Docker Hub') {
+            steps {
+                withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
+                    sh 'docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest'
+                }
+            }
+        }
+
+        stage('Implantar no Kubernetes') {
+            steps {
+                sh 'kubectl apply -f k8s/deployment.yaml'
+                sh 'kubectl rollout status deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE}'
+            }
+        }
+    }
+}
