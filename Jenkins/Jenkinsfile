@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    environment {
+        SONARQUBE_URL = 'http://localhost:9000' // URL do SonarQube
+        SONARQUBE_TOKEN = credentials('sonar-token') // ID da credencial do token no Jenkins
+        DOCKER_IMAGE = 'meu-app'
+        DOCKER_REGISTRY = 'docker.io/pedrorubacow'
+        K8S_NAMESPACE = 'default'
+        K8S_DEPLOYMENT = 'meu-app-deployment'
+    }
+
+    stages {
+        stage('Clonar Código') {
+            steps {
+                git branch: 'main', url: 'https://github.com/pedrorubacow/django_crm.git'
+            }
+        }
+
+        stage('Compilar e Testar') {
+            steps {
+                sh 'echo "Executando testes automatizados..."'
+                // Adicione comandos reais de testes aqui, ex: pytest, npm test, etc.
+            }
+        }
+
+        stage('Análise SonarQube') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                    sonar-scanner \
+                        -Dsonar.projectKey=django-crm \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=${SONARQUBE_URL} \
+                        -Dsonar.login=${SONARQUBE_TOKEN}
+                    '''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                script {
+                    timeout(time: 5, unit: 'MINUTES') {
+                        def qualityGate = waitForQualityGate()
+                        if (qualityGate.status != 'OK') {
+                            error "Quality Gate failed: ${qualityGate.status}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build da Imagem Docker') {
+            steps {
+                sh 'docker build -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest .'
+            }
+        }
+
+        stage('Publicar Imagem no Docker Hub') {
+            steps {
+                withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
+                    sh 'docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest'
+                }
+            }
+        }
+
+        stage('Implantar no Kubernetes') {
+            steps {
+                sh 'kubectl apply -f k8s/deployment.yaml'
+                sh 'kubectl rollout status deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE}'
+            }
+        }
+    }
+}
