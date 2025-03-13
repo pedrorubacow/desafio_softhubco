@@ -3,9 +3,13 @@
 ## Requisitos
 - Terraform instalado
 - Kind instalado (`choco install kind` no Windows)
+- Kubectl instalado
 
 ## Passos para Criar o Cluster
-1 - **Configurar o arquivo main.tf**
+1 - **Criado o arquivo kind-config.yaml**
+- Para definir os nós do Cluster
+
+2 - **Configurar o arquivo main.tf**
 
 2 - **Iniciar o Terraform**
 - terraform init
