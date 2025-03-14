@@ -1,4 +1,7 @@
 # desafio_softhubco
+
+**Todos as pastas com cada tarefa realizada tem sua respectiva documentação.**
+
 ## Configurando o reposítório no Github
 Foi Criado no Github um reposíitório com a branch Main e uma nova chamada develop
 Este é o exemplo de como criar uma branch de feature, fazer mudanças e mesclar de volta para a principal.
